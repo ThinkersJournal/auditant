@@ -118,6 +118,8 @@ RedactAnt's fingerprint key).
 | independent audit | **none found**: the upstream README does not mention one, and I did not search further |
 | standardisation | **BLAKE3 is not a NIST/FIPS algorithm.** SHA-256 is. |
 
+**PM ruling (2026-11-16): proceed with BLAKE3.** Stated plainly, as required: (1) no third-party audit found, (2) no declared MSRV, (3) not NIST/FIPS, so **no FIPS claim appears anywhere in the README or docs**. A SHA-256 mode is added through `alg` only on CireSnave's word.
+
 **What argues against, plainly:** (1) no published third-party audit that I found, and no FIPS standing: an auditor or a regulated
 customer who requires FIPS-approved hashes cannot accept it as the only option; (2) no declared MSRV. Neither blocks CireSnave's ruling, and the `alg` field in every record is the mitigation: a SHA-256 mode can be added later without a
 format break. Raised to the PM as an [ASK] so it is a decision, not a silent drift.
@@ -158,6 +160,8 @@ spike (**UNVERIFIED**).
 memory), so a plain-file or object-store backend cannot carry the guard that D2 requires; `lock.lease` source says so ("`KvOnBlob`
 cannot offer it"). There is no fencing token (a former lease holder is stopped only by the head CAS failing, which is enough for
 safety but is not a lock that survives clock trouble). The lease depends on the backend's TTL clock.
+
+**Slice-1 shim (PM, 2026-11-16: PersistAnt decided A3, typed `update_record` 2026-11-18, fencing 2026-11-20):** until then slice 1 may use the raw-byte kv `compare_and_swap` behind **one small function** (`advance_head`), so moving to the typed helper is a one-line swap. The README's first screen states that plain-file trails are impossible (kv-on-blob refuses CAS).
 
 **Consequence for the slice:** the real backend for slice 1 is **SQLite through `kv-on-relational`**, picked by `choose` because it is the
 smallest backend that satisfies the declared needs; a developer with PostgreSQL gets the same code. Plain files are *not* a valid trail

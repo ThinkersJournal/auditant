@@ -21,8 +21,8 @@ There is no headline feature claim yet, so no command to list. Every claim the R
 |---|---|---|---|
 | 1 | Design note `docs/DESIGN.md` with CireSnave's rulings | **done** (#1) | none |
 | 2 | Branch protection requiring CI | done: 7 required checks, enforcement `non_admins` (read from `branches/main` protection, not `.protected`) | none |
-| 3 | Replace UNVERIFIED customer rows (auth-framework, SecretAnt needs) by reading their `origin/main` | todo | none |
-| 4 | Crate reviews still owed: JCS (RFC 8785) crate; Ed25519 crate for slice 3 (BLAKE3 done, DESIGN 4b) | todo | none |
+| 3 | Replace UNVERIFIED customer rows (auth-framework, SecretAnt needs) by reading their `origin/main` | **done in this PR** (DESIGN section 2; finding: SecretAnt's local-file stub cannot move to a plain-file trail) | none |
+| 4 | Crate reviews: JCS and Ed25519 read on crates.io (DESIGN 4c); RFC 8785 test vectors against the chosen crate and the `deny.toml` check of BSD-3-Clause still owed | partly done in this PR | none |
 | 5 | Three questions to the PersistAnt lane (DESIGN 5b: does `choose` list `kv-on-relational`, is `lock.lease` reachable through `open_named`, CAS on blob) | todo | none |
 | 6 | Patent sweep (DESIGN section 9), recorded in `PATENT-SWEEP.md`, **before slice-1 code ships** | todo | none |
 | 7 | README first screen: plain-file trails impossible, no FIPS claim, BLAKE3 facts | **done in this PR** (placeholder text; extend with slice 1) | none |

@@ -32,10 +32,10 @@ let report = trail.verify()?;                          // report.is_intact(), or
 | SecretAnt | an audit trail of who did what to which secret; never the secret | **UNVERIFIED**, same |
 | RedactAnt | none (AuditAnt is a consumer of it) | `docs/DERIVE.md` section 9 questions answered in section 8 below |
 
-**Smallest first slice (the one thing that must work end to end):** a typed event with the derive, a hash chain over its
-canonical bytes, `emit`, `verify`, and an in-memory store used by the tests. No signing, no PersistAnt backend, no multi-writer.
-It is enough to show the product (three-line emit, three-line verify, a tamper test that fails) without choosing any backend.
-Slice order is section 10.
+**Smallest first slice (the one thing that must work end to end):** a typed event with the derive, a BLAKE3 hash chain over its
+canonical JSON bytes, `emit`, `verify`, and a **single-writer guard**, all running against a **real backend chosen through PersistAnt
+`choose`** (CireSnave, section 11: D2 and D4). No signing, no multi-writer. An in-memory store may exist as a test double
+only; it is never the slice's answer. The plan, and what PersistAnt does and does not offer today, is section 5b. Slice order is section 10.
 
 ## 3. Event model
 
@@ -66,16 +66,16 @@ work". The derive refuses an event type missing them (compile-fail test).
 The placeholder is RedactAnt's `<redacted>` text only when a reader asks for a rendering; on disk it is the `redacted` tag, so
 tests assert bytes and a reader cannot confuse a withheld value with the literal string.
 
-**Canonical bytes.** The hashed form is the record serialised deterministically: sorted keys, no insignificant whitespace,
-numbers and strings per RFC 8785 (JSON Canonicalization Scheme) **UNVERIFIED as the right choice**: the alternative is
-canonical CBOR (RFC 8949 section 4.2). JSON wins on "a developer can read the trail with `cat`"; CBOR on size. Decision for
-CireSnave in section 11.
+**Canonical bytes (decided, D1 = A): canonical JSON.** The hashed form is the record serialised deterministically per
+RFC 8785 (JSON Canonicalization Scheme): sorted keys, no insignificant whitespace, defined number and string forms. A developer can
+read the trail with `cat`. The JCS crate and its number handling are a slice-1 review item (**UNVERIFIED**: not yet read).
 
 ## 4. The trail: append-only and tamper-evident
 
-**Chain.** `hash(n) = H(domain_tag || hash(n-1) || canonical_bytes(n))`, `domain_tag` a fixed string naming the format
-version so a hash from another use cannot be replayed here. `H` is SHA-256 or BLAKE3: **UNVERIFIED**, I have not read either
-crate's current version, MSRV or audit status; choosing is slice 1's first task, crates.io, newest (CireSnave's dependency rules).
+**Chain (decided, D3 = B: BLAKE3).** `hash(n) = BLAKE3-derive-key(context, prev_hash || canonical_bytes(n))`, using BLAKE3's own
+`derive_key` mode with a fixed context string naming the format version, so a hash from another use cannot be replayed here.
+Every record carries an `alg` field (`"blake3"`), so another algorithm can be added later without ambiguity. The crate review is in
+section 4b.
 Verify walks the trail, recomputes every hash, and checks `seq` is gapless and `prev` links.
 
 **Signed checkpoints (slice 3, optional).** Every N records, or on demand, the trail writes a checkpoint
@@ -105,30 +105,72 @@ RedactAnt's fingerprint key).
 - **Not multi-writer consensus.** One logical writer per trail (section 5). Two processes appending to one trail is refused, not merged.
 - **Fingerprints are the existing 4-byte keyed tag** (RedactAnt design section 6): identify within a few values, not a security boundary.
 
+## 4b. BLAKE3 crate review (2026-11-16, crates.io and GitHub read that day)
+
+| Check | Finding |
+|---|---|
+| latest version | `blake3` 1.8.7, published 2026-08-20, not yanked |
+| licence | `CC0-1.0 OR Apache-2.0 OR Apache-2.0 WITH LLVM-exception`: compatible with our MIT OR Apache-2.0 |
+| maintenance | upstream repo `BLAKE3-team/BLAKE3`, last commit 2026-11-12; ~229 million downloads |
+| edition / MSRV | edition 2024; crates.io shows **no declared `rust-version`**, so the floor is whatever edition 2024 needs (our `rust-version` 1.88 is above it) |
+| `no_std` | yes: the default `std` feature can be switched off; extra features (`rayon`, `mmap`, `zeroize`, `digest`) are opt-in |
+| RustSec | no directory for `blake3` in `rustsec/advisory-db` (positive control: `crates/time` exists there). Reads as "no advisories filed", not "audited" |
+| independent audit | **none found**: the upstream README does not mention one, and I did not search further |
+| standardisation | **BLAKE3 is not a NIST/FIPS algorithm.** SHA-256 is. |
+
+**What argues against, plainly:** (1) no published third-party audit that I found, and no FIPS standing: an auditor or a regulated
+customer who requires FIPS-approved hashes cannot accept it as the only option; (2) no declared MSRV. Neither blocks CireSnave's ruling, and the `alg` field in every record is the mitigation: a SHA-256 mode can be added later without a
+format break. Raised to the PM as an [ASK] so it is a decision, not a silent drift.
+
 ## 5. Where it stores
 
 CireSnave's standing order (2026-10-21, quoted in PersistAnt `docs/CONSUMERS.md`): *"I don't want to arbitrarily limit any project
 to a specific backend when there are multiple options available."* So AuditAnt **declares what it needs and lets PersistAnt's
 registry pick**; it names no backend in code.
 
-Declared needs (capability ids read from `matrix/opendal.tsv` on 2026-11-16; their exact use is **UNVERIFIED** until a slice-2
-spike):
+Needs are declared as PersistAnt capability ids (read from the `matrix/*.tsv` files at PersistAnt `origin/main` `a2415d7`, 2026-11-16).
+The slice-1 design uses **one key-value backend**, not blob segments:
 
-| Need | Capability id | Why |
+| What AuditAnt does | Capability id | Why |
 |---|---|---|
-| append a record | `blob.append` | the trail is a sequence of appended segments |
-| read it back | `blob.read`, `blob.read_range` | verify, and resume after restart |
-| list segments | `blob.list` | find the head after a restart |
-| refuse overwrite | `blob.create_exclusive` | start a new segment without clobbering one |
-| single-writer head | `kv.compare_and_swap` (alternative to a lock file) | prove one writer; **open question**, section 11 |
-| durability | `Durability::Persistent` class | a volatile trail is not an audit trail; `Volatile` is accepted **only** in tests |
+| write record `rec/<seq>` once, never overwrite | `kv.put_if_absent` | append-only at the storage layer: a second write of the same `seq` is refused by the backend |
+| advance the head `{seq, hash}` | `kv.compare_and_swap` | a stale or second writer's head update fails, so a fork cannot be committed |
+| hold the writer role | `lock.lease` (built on `put_if_absent` with TTL, `compare_and_swap`, `compare_and_delete`) | one live writer; the lease is for liveness, the head CAS is the safety guard |
+| read back and verify in order | `kv.get`, `kv.ordered_scan_values` | verify and resume |
+| durability | `Durability::Persistent` class | a volatile trail is not an audit trail; `Volatile` is accepted only in tests |
 
-`blob.append.concurrent_whole` is deliberately **not** needed: one writer. A backend that cannot append (the matrix shows
-`opendal-memory` cannot) is refused at open, by name, with PersistAnt's message.
+Crash between "record written" and "head advanced" leaves one record past the head; `open` scans forward from the head, checks the
+chain link, and adopts or refuses it (a tested case). `kv.batch_atomic.*` could do both writes at once; whether to use it is a slice-1
+spike (**UNVERIFIED**).
 
-Storage layout: segments of bounded size (`trail-000001`, ...); a sealed segment is never written again; the head hash is
-recomputed by verify, so no separate "head" file can disagree with the records. The smallest slice uses an in-memory store
-behind a small internal trait; the PersistAnt adapter is slice 2.
+## 5b. Slice-1 plan against a real backend, and what PersistAnt has today
+
+**What exists at PersistAnt `origin/main` `a2415d7` (certified `yes` in the matrices):**
+
+| Capability | Backends where it is `yes` |
+|---|---|
+| `kv.put_if_absent`, `kv.compare_and_swap`, `lock.lease`, `kv.ordered_scan_values`, `kv.batch_atomic.*` | `kv-on-relational` over **sqlite, sqlite-full, mysql, mariadb, postgres** |
+| `blob.append`, `blob.create_exclusive` | `opendal-fs` (also `opendal-memory` for `create_exclusive` only) |
+| `lock.process` | `std-file-lock` (one machine) |
+| `rel.advisory_lock` | postgres only |
+
+**What does not exist:** `kv.compare_and_swap`, `kv.compare_and_delete` and `lock.lease` are **`no` on `kv-on-blob`** (opendal-fs and
+memory), so a plain-file or object-store backend cannot carry the guard that D2 requires; `lock.lease` source says so ("`KvOnBlob`
+cannot offer it"). There is no fencing token (a former lease holder is stopped only by the head CAS failing, which is enough for
+safety but is not a lock that survives clock trouble). The lease depends on the backend's TTL clock.
+
+**Consequence for the slice:** the real backend for slice 1 is **SQLite through `kv-on-relational`**, picked by `choose` because it is the
+smallest backend that satisfies the declared needs; a developer with PostgreSQL gets the same code. Plain files are *not* a valid trail
+backend until PersistAnt can compare-and-swap on them, and AuditAnt refuses them at open by name (the declared needs are not met).
+That follows D2 (the guard is built in from the start) and is a **limit to state to CireSnave**, not hide: the simplest "append to a file"
+setup is unavailable until PersistAnt grows it.
+
+**Questions for the PersistAnt lane (none answered yet, so nothing here is claimed to work):** (1) does the `registry`/`choose` path
+list `kv-on-relational` backends with a `ProviderNeeds` of the ids above, or only the blob backends shown in its README hello?
+(2) is `lock.lease` reachable through `open_named`, or only through the kind crate's `Lease` type? (3) would a CAS on
+`kv-on-blob` (so plain files qualify) be scheduled? **Slice-1 steps:** answer (1) and (2) with a spike that opens SQLite through
+`choose` and takes a lease; then the chain, `emit`/`verify`, the crash-between-writes test, and a two-writer test whose second writer
+must fail (with its negative control).
 
 ## 6. Public API sketch
 
@@ -202,18 +244,21 @@ on the design is stopped and sent to the PM before code, as with RedactAnt's det
 
 ## 10. Slices (proposed; each its own PR with a fragment; the PM allocates numbers)
 
-1. Event derive consumer, canonical bytes, hash chain, `emit`/`verify`, in-memory store, T1/T2/T5 with negative controls, README
-   hello-world compiled in CI, patent sweep, `[architecture]` declaration. 2. PersistAnt adapter, declared needs, durable
-   restart, single-writer guard. 3. Signed checkpoints, T3/T4. 4. Dynamic (map-fed) events. 5. Segment sealing and rotation, export.
+1. Event derive consumer, canonical JSON, BLAKE3 chain, `emit`/`verify`, **PersistAnt-backed store (SQLite via `choose`) with the
+   single-writer guard**, T1/T2/T5 and a two-writer test with negative controls, README hello-world compiled in CI, patent sweep,
+   `[architecture]` declaration. 2. Other backends (postgres, mysql) in the same tests; plain-file backends when PersistAnt can CAS on
+   them. 3. Signed checkpoints, T3/T4. 4. Dynamic (map-fed) events. 5. Segment rotation, export.
 
-## 11. Decisions wanted from CireSnave
+## 11. Decided (CireSnave, 2026-11-16, board 456, verbatim)
 
-- **D1: canonical form**: JSON (JCS, readable with `cat`) **recommended**, or CBOR (smaller)?
-- **D2: single-writer guard**: a PersistAnt lock/CAS record (needs `kv.compare_and_swap` on top of blob), or "the caller promises one
-  writer" and AuditAnt only detects a fork at verify? Recommend: detect-at-verify in slice 2, a guard later.
-- **D3: hash**: SHA-256 (ubiquitous, reviewed) or BLAKE3 (faster)? Recommend SHA-256 unless the crate review says otherwise.
-- **D4: does he accept slice 1 without a PersistAnt backend** (in-memory only), so no backend choice is made before he has seen the product?
+> *"456: D1: A. D2: B (PersistAnt should include locking mechanisms anyway). D3: B. D4: B."*
 
-Nothing here is built. Slice 1 starts only after he has seen this.
+- **D1 = A:** canonical JSON (RFC 8785).
+- **D2 = B:** a single-writer guard from the start, built on PersistAnt compare-and-swap and a lock/lease record, not "detect at verify".
+  His parenthesis says PersistAnt should include locking mechanisms anyway: section 5b lists what it lacks (CAS and lease on plain files).
+- **D3 = B:** BLAKE3 (review in section 4b; caveats raised to the PM).
+- **D4 = B:** the first slice uses a real backend through PersistAnt `choose`, not in-memory only.
+
+Nothing here is built. Slice 1 starts only after the PM clears this note.
 
 — lane: auditant

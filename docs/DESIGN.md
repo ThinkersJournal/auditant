@@ -165,6 +165,11 @@ backend until PersistAnt can compare-and-swap on them, and AuditAnt refuses them
 That follows D2 (the guard is built in from the start) and is a **limit to state to CireSnave**, not hide: the simplest "append to a file"
 setup is unavailable until PersistAnt grows it.
 
+**Dependency, with dates (PersistAnt's own report relayed by the PM on 2026-11-16, not re-read by me):** compare-and-swap and
+lease exist on SQLite, PostgreSQL, MySQL and MariaDB and are refused by a typed error on blob storage; the gap is a **typed CAS helper
+(target 2026-11-18)** and a **fencing token (target 2026-11-20)**. Slice 1 therefore names SQLite as its backend, treats a blob backend
+as refused at open with that typed error, and takes the typed helper as a dependency (the fencing token strengthens the guard when it lands).
+
 **Questions for the PersistAnt lane (none answered yet, so nothing here is claimed to work):** (1) does the `registry`/`choose` path
 list `kv-on-relational` backends with a `ProviderNeeds` of the ids above, or only the blob backends shown in its README hello?
 (2) is `lock.lease` reachable through `open_named`, or only through the kind crate's `Lease` type? (3) would a CAS on

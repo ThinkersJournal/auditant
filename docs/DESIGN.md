@@ -28,8 +28,8 @@ let report = trail.verify()?;                          // report.is_intact(), or
 
 | Customer | Wants | Status |
 |---|---|---|
-| auth-framework | who authenticated, who was refused, token issue/revoke, without any credential in the record | **UNVERIFIED**: the PM's word (HANDOFF); its own needs have not been read. First task of slice 1: read its `origin/main` and replace this row |
-| SecretAnt | an audit trail of who did what to which secret; never the secret | **UNVERIFIED**, same |
+| auth-framework | an audit event with a type (about 50 in `src/audit.rs`: logins, token issue/revoke, MFA, roles, user changes, security events), a user, a resource, an outcome (success/failure/pending), a risk level, ip, session and request ids, free metadata (its `audit_logs` table, `src/migrations/004_create_audit_logs.sql`). It runs on PostgreSQL, so compare-and-swap exists there | **read** `origin/main`, 2026-11-16. Gaps for us: `risk_level` and free-form `metadata` (JSONB) are not in the required envelope, so the derive must let an author add typed fields, and metadata must be a typed struct with dispositions, not a map. No mention of AuditAnt in its tree (`git grep auditant` found nothing) |
+| SecretAnt | every sign-in, reveal, put, rotate, delete, deliver, export, import, config change: who, what (a name, never a value), when, from where, result (its `docs/DESIGN.md` 7.5); an append-only line file with a prev-hash stub today; wants the chain head saved in a second location it chose (our checkpoints, T3); adoption is its ROADMAP row 11, "blocked: not published"; no audit in 0.1.0 | **read** `origin/main`, 2026-11-16. **Tension:** its stub is a local file, but D4 and PersistAnt's matrix make a plain-file trail impossible, so SecretAnt must use SQLite through PersistAnt for its trail |
 | RedactAnt | none (AuditAnt is a consumer of it) | `docs/DERIVE.md` section 9 questions answered in section 8 below |
 
 **Smallest first slice (the one thing that must work end to end):** a typed event with the derive, a BLAKE3 hash chain over its
@@ -123,6 +123,15 @@ RedactAnt's fingerprint key).
 **What argues against, plainly:** (1) no published third-party audit that I found, and no FIPS standing: an auditor or a regulated
 customer who requires FIPS-approved hashes cannot accept it as the only option; (2) no declared MSRV. Neither blocks CireSnave's ruling, and the `alg` field in every record is the mitigation: a SHA-256 mode can be added later without a
 format break. Raised to the PM as an [ASK] so it is a decision, not a silent drift.
+
+## 4c. Other crate reviews (2026-11-16, crates.io read that day; behaviour not tested)
+
+| Need | Candidate | Read | Verdict |
+|---|---|---|---|
+| RFC 8785 canonical JSON | `serde_json_canonicalizer` 0.4.1 (MIT, updated 2026-10-13, 18.7M downloads) | no declared MSRV; **conformance to RFC 8785 not tested by me** | leading candidate; slice 1 runs the RFC's own test vectors against it before relying on it |
+| | `serde_jcs` 0.2.0 (MIT OR Apache-2.0, 2026-03-25, MSRV 1.85) | same | alternative |
+| Ed25519 (slice 3) | `ed25519-dalek` 3.0.0 (**BSD-3-Clause**, 2026-07-06, MSRV 1.85, 277M downloads) | audit history **UNVERIFIED** (I recall one, not read); BSD-3-Clause must pass `deny.toml` | leading candidate |
+| | `ed25519-compact` 2.6.1 (MIT, 2026-11-07) | no declared MSRV | alternative |
 
 ## 5. Where it stores
 

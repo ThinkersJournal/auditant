@@ -29,7 +29,7 @@ There is no headline feature claim yet, so no command to list. Every claim the R
 | 8 | `[architecture]` declaration in `.coderipper.toml` (ruling 365) | todo | lands with slice 1 modules |
 | 9 | **Slice 1:** typed event + RedactAnt derive, canonical JSON (JCS), BLAKE3 chain with `alg` per record, `emit`/`verify`, SQLite via PersistAnt `choose`, single-writer guard (head compare-and-swap behind one function `advance_head`, plus lease), tests T1/T2/T5 and a two-writer test each with a negative control, README hello compiled in CI | todo | RedactAnt derive (row 10); PersistAnt A3 typed `update_record` 2026-11-18 (raw-byte kv CAS meanwhile) |
 | 10 | RedactAnt field-level derive and serde-capable `Kept` (DESIGN 8, Q2, Q6) | RedactAnt's ROADMAP row 6; slice 1 of it is not built (its DERIVE.md "nothing built") | **Owner: redactant lane.** The 4 asks of DESIGN 8 sent as a [TASK] request 2026-11-16 (cc pm-ants); reply wanted by 2026-11-18, no date committed by them yet |
-| 11 | Swap `advance_head` to the typed helper; adopt fencing token | todo | PersistAnt 2026-11-18 (typed `update_record`), 2026-11-20 (fencing token) |
+| 11 | Swap `advance_head` to the typed helper; adopt fencing token | unblocked upstream, not started (slice 1 not begun) | PersistAnt `origin/main` has `update_record` (#262, step 1) and `Lease::token` / `lock.fencing` (#263, step 2), read 2026-11-19; no release yet, so confirm a published version before slice 1 pins it |
 | 12 | Other backends (postgres, mysql) in the same tests; plain files when PersistAnt can CAS on blob | todo | row 9; PersistAnt |
 | 13 | Slice 3: signed checkpoints, T3/T4 (Ed25519) | todo | row 9 |
 | 14 | Slice 4: dynamic (map-fed) events | todo | row 3 says whether a customer needs it |

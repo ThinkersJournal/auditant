@@ -42,6 +42,23 @@ granted, or change the record to avoid a two-level (entry hash plus summary hash
 - US family (Google status Active, not confirmed against USPTO fees): US9338013B2 exp. 2034-03-24; US10027473B2 2034-10-18; US11032065B2 2035-01-07; US11849023B2 2034-10-23.
 
 **Design-around (PM ruling: keep ONE hash per entry).** Claim 1 requires each recorded entry to comprise *a plurality of hashes*: a log entry hash over the event data AND a log summary hash that depends on the previous entry's summary hash. AuditAnt stores one `hash` per record, computed over `prev` and the record's canonical bytes (`src/lib.rs`, `compute_hash`); there is no separate entry hash and no second-level summary hash anywhere in the format. **Plainly: our single hash does depend on the previous record's hash, so the difference is only the second hash level. Whether that avoids the claim is a lawyer's question; there is no attorney. Not legal advice.** No slice may add a second hash level to the record format without going back to the PM.
+## Claim 1 of EP2897051B1 as granted, element by element (PM request 2026-11-19)
+
+Left column: the claim wording (source https://patents.google.com/patent/EP2897051B1/en, read verbatim; Google Patents only: Espacenet and the EPO Register returned HTTP 403 and were NOT opened, so this is the depth reached). Right columns: what the AuditAnt record does (`src/lib.rs`). Plain words, **not a conclusion, not legal advice, no attorney**.
+
+| # | Claim 1 element | What the AuditAnt record does | Marked |
+|---|---|---|---|
+| 1 | A computer system comprising one or more hardware processors configured to... | A Rust library run on a computer's processors. Same in plain terms. | Same / not a differentiator |
+| 2 | receive an event from an event submission entity, the event comprising event data describing the event | `emit` receives an `Event` (time, schema, body) from the calling program. | Same |
+| 3 | determine one or more metadata items associated with the event | Envelope fields `seq`, `time`, `schema`, `alg`, `prev` are set or carried per record. | Same, in plain terms |
+| 4 | calculate a log entry hash associated with the event, the log entry hash dependent on the event data | No separate hash over the event data alone. The only hash is over `prev` plus the whole record's canonical bytes (which include the event body). | **NOT implemented as a separate element** (our one hash does depend on the event data, but there is no distinct entry hash) |
+| 5 | calculate a log summary hash associated with the event, dependent on the log entry hash, at least one metadata item, and a second log summary hash of the previous entry | No summary hash, and no hash that depends on an entry hash. Our one `hash` depends on the previous record's `hash` (`prev`) and the record's own fields. | **The element we do NOT implement is the second hash level (a summary hash built from an entry hash).** **Arguably the same: our single hash depends on the previous record's hash.** |
+| 6 | store a recorded log entry in an electronic event log comprising the event data, the metadata item(s), the log entry hash and the log summary hash | The stored record holds body, envelope fields, and one `hash`. | Same, except for the two hashes |
+| 7 | the log comprises a plurality of log entries organised in a list according to time | Records are numbered `seq` 0,1,2... in append order. | Same |
+| 8 | each recorded log entry comprising a plurality of hashes, at least one dependent on a previous log entry summary hash | One hash per record, dependent on the previous record's hash. | **NOT implemented: we store one hash, not a plurality.** Arguably the same for the dependence on the previous hash. |
+
+Same table applies to claim 8 (method, same elements) and claim 15 (a program performing claims 8-14). The decision whether to publish with this design-around is a board item before the first publish (options: ship the design-around / change the chain to avoid the prev-dependence / wait), per the PM.
+
 ## Ideas swept (DESIGN.md section 9)
 1. A log in which each record includes a hash of the previous record, verified by recomputation.
 2. Periodic signed checkpoints over a log head, held externally to detect truncation.

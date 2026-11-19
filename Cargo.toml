@@ -2,7 +2,7 @@
 name = "auditant"
 version = "0.0.3"
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.94"
 description = "Planned. The crate name is reserved; there is no API yet."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ThinkersJournal/auditant"
@@ -11,6 +11,10 @@ publish = false
 
 [dependencies]
 blake3 = "1.8.7"
+persistant = { version = "0.18.23", features = ["registry-sqlite"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_json_canonicalizer = "0.4.1"
+
+[dev-dependencies]
+tempfile = "3.27.0"

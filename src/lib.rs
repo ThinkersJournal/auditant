@@ -53,6 +53,12 @@ pub enum Error {
     UnknownAlg { seq: u64, alg: String },
     /// The record could not be canonicalised.
     Canonical(String),
+    /// Another writer appended first (the single-writer guard refused this append).
+    Conflict { seq: u64 },
+    /// Stored data is not what the trail wrote.
+    Corrupt(String),
+    /// The backing store failed.
+    Store(String),
 }
 
 impl std::fmt::Display for Error {
@@ -63,6 +69,9 @@ impl std::fmt::Display for Error {
             Error::BadSeq { seq, expected } => write!(f, "record {seq}: expected seq {expected}"),
             Error::UnknownAlg { seq, alg } => write!(f, "record {seq}: unknown alg {alg:?}"),
             Error::Canonical(e) => write!(f, "canonicalisation failed: {e}"),
+            Error::Conflict { seq } => write!(f, "append of record {seq} lost to another writer"),
+            Error::Corrupt(e) => write!(f, "corrupt store: {e}"),
+            Error::Store(e) => write!(f, "store error: {e}"),
         }
     }
 }
@@ -92,6 +101,10 @@ pub fn next_record(head: Option<&Record>, ev: Event) -> Result<Record, Error> {
     let mut r = Record { seq, time: ev.time, schema: ev.schema, prev, alg: ALG_BLAKE3_V1.into(), body: ev.body, hash: String::new() };
     r.hash = compute_hash(&r)?;
     Ok(r)
+}
+
+pub(crate) fn check_hash(r: &Record) -> Result<(), Error> {
+    if compute_hash(r)? == r.hash { Ok(()) } else { Err(Error::HashMismatch { seq: r.seq }) }
 }
 
 /// Verify a whole trail from the start. Returns the head hash, or the FIRST broken record and why.
@@ -129,3 +142,6 @@ impl MemTrail {
         Ok(self.records.last().expect("just pushed"))
     }
 }
+
+mod store;
+pub use store::{Head, SqliteTrail};

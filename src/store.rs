@@ -8,7 +8,7 @@
 //! A crash between the record write and the head advance leaves an orphan record that
 //! [`SqliteTrail::open`] adopts after re-checking its link and hash.
 
-use crate::{Error, Event, Record, next_record, verify};
+use crate::chain::{Error, Event, Record, check_hash, next_record, verify};
 use persistant::blocking::registry::{self, KvHandle};
 use persistant::capability::{CapabilityId, choose::Durability, provider::ProviderNeeds};
 use persistant::registry::Endpoint;
@@ -120,11 +120,11 @@ impl SqliteTrail {
         };
         // Check just the link and the hash of the orphan, not the whole trail.
         let anchor = chain.pop();
-        let expected_prev = anchor.as_ref().map_or(crate::GENESIS.to_string(), |r| r.hash.clone());
+        let expected_prev = anchor.as_ref().map_or(crate::chain::GENESIS.to_string(), |r| r.hash.clone());
         if orphan.prev != expected_prev || orphan.seq != next {
             return Err(Error::Corrupt(format!("orphan record {next} does not link to the head")));
         }
-        crate::check_hash(&orphan)?;
+        check_hash(&orphan)?;
         self.advance_head(head.as_ref(), &Head { seq: orphan.seq, hash: orphan.hash })
     }
 

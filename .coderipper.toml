@@ -1,0 +1,40 @@
+# The `[architecture]` declaration (ARC/MOD programme, CireSnave 2026-11-12), modelled on redactant's. NORMATIVE: it says where things should sit.
+# One crate, three groups. `chain` (src/chain.rs: Record, hashing, verify, MemTrail) is the bottom and does no I/O; `store` (src/store.rs) builds
+# on it and talks to PersistAnt; `api` is the crate root (src/lib.rs), which only declares modules and re-exports, so it sits on top.
+# Layers are bottom first: a component may depend on its own layer or any layer below it. Owner: the auditant lane.
+# UNVERIFIED by the analyser: written without a coderipper run; the first CI run is the check.
+[architecture]
+style = "layered"
+none = ["composition"]
+
+# pure = true on chain and api: neither names a file, network, environment, process, clock, randomness or thread API (EFX-001; grep over src/ on lane-work, control: `std::fmt` is found in the same files).
+[[architecture.component]]
+name = "chain"
+paths = ["src/chain.rs"]
+pure = true
+role = "policy"
+volatility = "stable"
+
+[[architecture.component]]
+name = "store"
+paths = ["src/store.rs"]
+# Wraps the outside crate persistant behind SqliteTrail.
+role = "adapter"
+
+[[architecture.component]]
+name = "api"
+paths = ["src/lib.rs"]
+pure = true
+role = "policy"
+
+[[architecture.layer]]
+name = "core"
+components = ["chain"]
+
+[[architecture.layer]]
+name = "services"
+components = ["store"]
+
+[[architecture.layer]]
+name = "facade"
+components = ["api"]

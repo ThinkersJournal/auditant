@@ -5,6 +5,10 @@ patents.google.com and USPTO print pages, US-only tool), then the independent cl
 `tools/patent-claims.py` (Google Patents pages, machine-converted text). **NOT legal advice; NOT a freedom-to-operate opinion;
 there is no attorney.** Process: `C:\Projects\PATENT-SWEEP-PROCESS.md`. Plan: `docs/DESIGN.md` section 9.
 
+## RULE (CireSnave board 464, ruled "464: A" 2026-11-19, via PM): ONE HASH, FOREVER
+
+AuditAnt publishes with the SINGLE-HASH design. **The record format NEVER gains a second hash level** (no summary hash over entry hashes, no per-entry hash plus a separate chained hash) without a new CireSnave ruling. Keep the claim table below in the repo. Checked in CI by `tests/chain.rs::record_has_exactly_one_hash_field` (the record's field set is fixed). The Espacenet/EPO-register hand read is optional; spend no more on it. The "STOP" section below is kept as history; it is answered.
+
 ## STOP: send to the PM before slice 1 code (one item, read it first)
 
 **EP2897051A2 (Palantir, "Verifiable audit log"; a published European application, grant status NOT checked) has a claim 1 that

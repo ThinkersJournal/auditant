@@ -83,3 +83,15 @@ fn known_answer_pins_the_format() {
     let mut r2 = r.clone(); r2.time = "2026-11-19T00:00:01Z".into();
     assert_ne!(verify(&[r.clone()]).unwrap(), verify(&[Record{hash: next_record(None, Event{time:r2.time.clone(),schema:"t/1".into(),body:r2.body.clone()}).unwrap().hash, ..r2}]).unwrap());
 }
+
+/// CireSnave board 464 (PATENT-SWEEP.md): one hash per record, no second hash level. A new field needs a ruling.
+#[test]
+fn record_has_exactly_one_hash_field() {
+    let t = trail(2);
+    let v = serde_json::to_value(&t.records[1]).unwrap();
+    let mut keys: Vec<&str> = v.as_object().unwrap().keys().map(String::as_str).collect();
+    keys.sort_unstable();
+    assert_eq!(keys, ["alg", "body", "hash", "prev", "schema", "seq", "time"]);
+    // Control: the check can fail (a record with an extra field would not match).
+    assert_ne!(keys, ["alg", "body", "hash", "prev", "schema", "seq", "summary_hash", "time"]);
+}

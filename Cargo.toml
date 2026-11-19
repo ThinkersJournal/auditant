@@ -11,7 +11,7 @@ publish = false
 
 [dependencies]
 blake3 = "1.8.7"
-persistant = { version = "0.18.23", features = ["registry-sqlite"] }
+persistant = { version = "0.18.28", features = ["registry-sqlite"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_json_canonicalizer = "0.4.1"

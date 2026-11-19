@@ -10,6 +10,11 @@
 //! prevention, tail-truncation detection without an externally held head, authenticity, time,
 //! confidentiality, multi-writer safety (see `docs/DESIGN.md` section 4).
 
+// The README's example is compiled and run as a doctest, so it cannot drift from the API.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+struct ReadmeDoctests;
+
 mod chain;
 mod store;
 

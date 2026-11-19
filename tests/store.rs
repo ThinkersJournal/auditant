@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-// PersistAnt 0.18.28 ships `os=windows` and `os=macos` rows too, but on Windows the registry still answers "unverified(no row)" for sqlite (tried 2026-11-19; reported to pm-ants); on Windows and macOS
-// the registry refuses `sqlite` ("unverified (no row)"), so these run on Linux (CI ubuntu) until PersistAnt
-// certifies other platforms (ASK sent 2026-11-19; ROADMAP known gap).
-#![cfg(target_os = "linux")]
+// Runs on every OS once persistant's matrix key matches the bundled SQLite: needs the `libsqlite3-sys =0.37.0` pin in Cargo.toml (finding 2026-11-19; remove with the pin).  Verified on Windows 2026-11-19 (5 pass).
 use auditant::*;
 use serde_json::json;
 

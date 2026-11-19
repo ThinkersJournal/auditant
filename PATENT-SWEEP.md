@@ -32,6 +32,16 @@ pseudo-random salt data, which AuditAnt does not use; (b) I did not check whethe
 **Decision asked:** the PM (and CireSnave) say whether to accept the US-grant reading, commission a lawyer's look at EP2897051 as
 granted, or change the record to avoid a two-level (entry hash plus summary hash) structure. No code until answered.
 
+## EP2897051 status and the design-around (read 2026-11-19; PM ruling 2026-11-19)
+
+**Opened:** Google Patents pages for EP2897051B1/A2 and US9338013B2, US10027473B2, US11032065B2, US11849023B2 (raw B1 HTML for the claims and legal events).
+**Tried and failed (HTTP 403):** Espacenet (INPADOC) and the EPO Register. Status below is Google-compiled, not the official register, and not legal advice.
+
+- EP2897051B1 **granted 2017-08-02**; no opposition filed; Google shows Active, anticipated expiry 2034-12-19. Annual fees shown paid for DE, GB, FR, CH (year 12); most other states lapsed. Divisionals EP3255549B1 and EP3511833B1: status not read.
+- Claim 1 as granted is the same text as the published claim quoted above (independent claims 1, 8 method, 15 program). Source: https://patents.google.com/patent/EP2897051B1/en
+- US family (Google status Active, not confirmed against USPTO fees): US9338013B2 exp. 2034-03-24; US10027473B2 2034-10-18; US11032065B2 2035-01-07; US11849023B2 2034-10-23.
+
+**Design-around (PM ruling: keep ONE hash per entry).** Claim 1 requires each recorded entry to comprise *a plurality of hashes*: a log entry hash over the event data AND a log summary hash that depends on the previous entry's summary hash. AuditAnt stores one `hash` per record, computed over `prev` and the record's canonical bytes (`src/lib.rs`, `compute_hash`); there is no separate entry hash and no second-level summary hash anywhere in the format. **Plainly: our single hash does depend on the previous record's hash, so the difference is only the second hash level. Whether that avoids the claim is a lawyer's question; there is no attorney. Not legal advice.** No slice may add a second hash level to the record format without going back to the PM.
 ## Ideas swept (DESIGN.md section 9)
 1. A log in which each record includes a hash of the previous record, verified by recomputation.
 2. Periodic signed checkpoints over a log head, held externally to detect truncation.

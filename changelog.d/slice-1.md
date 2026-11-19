@@ -1,0 +1,1 @@
+Added: slice 1 of the audit trail: one-hash BLAKE3 chain over RFC 8785 canonical JSON (`Record`, `next_record`, `verify`, `MemTrail`) and a SQLite-backed `SqliteTrail` on PersistAnt with a single-writer head compare-and-swap and crash recovery (Linux only; its tests have not yet run).

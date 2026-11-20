@@ -18,5 +18,7 @@ struct ReadmeDoctests;
 mod chain;
 mod store;
 
-pub use chain::{ALG_BLAKE3_V1, CONTEXT, Error, Event, GENESIS, MemTrail, Record, next_record, verify};
+pub use chain::{
+    ALG_BLAKE3_V1, CONTEXT, Error, Event, GENESIS, MemTrail, Record, next_record, verify,
+};
 pub use store::{Head, SqliteTrail};

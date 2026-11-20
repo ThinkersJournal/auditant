@@ -57,7 +57,10 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::HashMismatch { seq } => write!(f, "record {seq}: hash does not match contents"),
-            Error::BrokenLink { seq } => write!(f, "record {seq}: prev does not match the previous record's hash"),
+            Error::BrokenLink { seq } => write!(
+                f,
+                "record {seq}: prev does not match the previous record's hash"
+            ),
             Error::BadSeq { seq, expected } => write!(f, "record {seq}: expected seq {expected}"),
             Error::UnknownAlg { seq, alg } => write!(f, "record {seq}: unknown alg {alg:?}"),
             Error::Canonical(e) => write!(f, "canonicalisation failed: {e}"),
@@ -76,8 +79,11 @@ fn to_hex(b: &[u8; 32]) -> String {
 /// Hash of a record: BLAKE3 `derive_key(CONTEXT, prev_hash_bytes || canonical_json(record without hash))`.
 fn compute_hash(r: &Record) -> Result<String, Error> {
     let mut v = serde_json::to_value(r).map_err(|e| Error::Canonical(e.to_string()))?;
-    v.as_object_mut().expect("record is an object").remove("hash");
-    let canon = serde_json_canonicalizer::to_vec(&v).map_err(|e| Error::Canonical(e.to_string()))?;
+    v.as_object_mut()
+        .expect("record is an object")
+        .remove("hash");
+    let canon =
+        serde_json_canonicalizer::to_vec(&v).map_err(|e| Error::Canonical(e.to_string()))?;
     let mut input = Vec::with_capacity(r.prev.len() + canon.len());
     input.extend_from_slice(r.prev.as_bytes());
     input.extend_from_slice(&canon);
@@ -90,13 +96,25 @@ pub fn next_record(head: Option<&Record>, ev: Event) -> Result<Record, Error> {
         Some(h) => (h.seq + 1, h.hash.clone()),
         None => (0, GENESIS.to_string()),
     };
-    let mut r = Record { seq, time: ev.time, schema: ev.schema, prev, alg: ALG_BLAKE3_V1.into(), body: ev.body, hash: String::new() };
+    let mut r = Record {
+        seq,
+        time: ev.time,
+        schema: ev.schema,
+        prev,
+        alg: ALG_BLAKE3_V1.into(),
+        body: ev.body,
+        hash: String::new(),
+    };
     r.hash = compute_hash(&r)?;
     Ok(r)
 }
 
 pub(crate) fn check_hash(r: &Record) -> Result<(), Error> {
-    if compute_hash(r)? == r.hash { Ok(()) } else { Err(Error::HashMismatch { seq: r.seq }) }
+    if compute_hash(r)? == r.hash {
+        Ok(())
+    } else {
+        Err(Error::HashMismatch { seq: r.seq })
+    }
 }
 
 /// Verify a whole trail from the start. Returns the head hash, or the FIRST broken record and why.
@@ -105,10 +123,16 @@ pub fn verify(records: &[Record]) -> Result<Option<String>, Error> {
     for (i, r) in records.iter().enumerate() {
         let expected = i as u64;
         if r.seq != expected {
-            return Err(Error::BadSeq { seq: r.seq, expected });
+            return Err(Error::BadSeq {
+                seq: r.seq,
+                expected,
+            });
         }
         if r.alg != ALG_BLAKE3_V1 {
-            return Err(Error::UnknownAlg { seq: r.seq, alg: r.alg.clone() });
+            return Err(Error::UnknownAlg {
+                seq: r.seq,
+                alg: r.alg.clone(),
+            });
         }
         if r.prev != prev {
             return Err(Error::BrokenLink { seq: r.seq });

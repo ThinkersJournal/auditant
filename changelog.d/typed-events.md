@@ -1,0 +1,1 @@
+Added: `typed_event`, building an `Event` from a `#[derive(Redact)]` value (redactant 0.1.14): the body holds each field's disposition (redacted, fingerprint tag, or kept value), never a withheld value; the derive's schema string becomes the record's `schema`.

@@ -36,6 +36,7 @@ There is no headline feature claim yet, so no command to list. Every claim the R
 | 15 | Slice 5: segment rotation, export | todo | row 9 |
 | 16 | First publish (0.1.0 pre-release) | todo | PM publishes; rows 6 to 9 done; fresh-eyes trial of the published crate |
 | 17 | Drop the `RUSTSEC-2026-0543` (chrono) ignore in `deny.toml` | todo, **expires 2026-12-17** | sqlx/persistant-sqlx must stop pulling chrono; renew with a reason if not |
+| 18 | Portfolio sweep (advisory, red on #4 at coderipper c72a6e0): ARC-002 "3 components depend on each other in a cycle: `api`, `chain`, `store`"; ARC-003/006/007 did not run (no volatile, api_budget, owns_data tables) and the job fails on a rule that did not run | tables added on `lane-row10`, **cycle not yet understood**: `store.rs` imports `crate::chain::..`, and the root re-exports both; try `super::` paths or declare the root outside the layers, then read the next sweep | none |
 
 ## Known gaps (not rows)
 - A tamper-evident trail does not prevent tampering, nor detect tail truncation without an externally held checkpoint (DESIGN 4, "not claimed").

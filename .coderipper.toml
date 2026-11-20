@@ -2,7 +2,7 @@
 # One crate, three groups. `chain` (src/chain.rs: Record, hashing, verify, MemTrail) is the bottom and does no I/O; `store` (src/store.rs) builds
 # on it and talks to PersistAnt; `api` is the crate root (src/lib.rs), which only declares modules and re-exports, so it sits on top.
 # Layers are bottom first: a component may depend on its own layer or any layer below it. Owner: the auditant lane.
-# UNVERIFIED by the analyser: written without a coderipper run; the first CI run is the check.
+# The first CI run (PR #4, coderipper c72a6e0) read this: ARC-002 reported ONE cycle among api/chain/store (not yet understood, ROADMAP row 18), and ARC-003/006/007 did not run until the tables below existed.
 [architecture]
 style = "layered"
 none = ["composition"]
@@ -18,6 +18,8 @@ volatility = "stable"
 [[architecture.component]]
 name = "store"
 paths = ["src/store.rs"]
+# ARC-007: only store names the head key; no other src/ file has the string literal "head" (checked by search at lane-row10; control: store.rs has it once).
+owns_data = ["head"]
 # Wraps the outside crate persistant behind SqliteTrail.
 role = "adapter"
 
@@ -38,3 +40,13 @@ components = ["store"]
 [[architecture.layer]]
 name = "facade"
 components = ["api"]
+
+# ARC-003 (crate granularity). persistant is the volatile outside dependency; chain and api are pure policy.
+[architecture.volatile]
+names = []
+namespaces = ["persistant"]
+feature_cfg_in_policy = true
+
+# ARC-006 ceiling for chain: the sweep's MOD-001 read the whole public surface at 11 items and 28 members (c72a6e0 run on PR #4); 40 is a ceiling to hold, not a measurement.
+[architecture.api_budget]
+chain = 40

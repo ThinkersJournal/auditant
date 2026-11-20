@@ -24,22 +24,24 @@ There is no headline feature claim yet, so no command to list. Every claim the R
 | 3 | Replace UNVERIFIED customer rows (auth-framework, SecretAnt needs) by reading their `origin/main` | **done in this PR** (DESIGN section 2; finding: SecretAnt's local-file stub cannot move to a plain-file trail) | none |
 | 4 | Crate reviews: JCS and Ed25519 read on crates.io (DESIGN 4c); RFC 8785 test vectors against the chosen crate and the `deny.toml` check of BSD-3-Clause still owed | partly done in this PR | none |
 | 5 | Three questions to the PersistAnt lane (DESIGN 5b: does `choose` list `kv-on-relational`, is `lock.lease` reachable through `open_named`, CAS on blob) | todo | none |
-| 6 | Patent sweep (DESIGN section 9), recorded in `PATENT-SWEEP.md`, **before slice-1 code ships** | todo | none |
+| 6 | Patent sweep (DESIGN section 9), recorded in `PATENT-SWEEP.md`, **before slice-1 code ships** | **done** on `lane-work` (22 patents read; one in-force EP, Palantir EP2897051B1, design-around by keeping one hash per entry) | board 464 ruled A (2026-11-19): single hash, never a second level; first publish not held on this |
 | 7 | README first screen: plain-file trails impossible, no FIPS claim, BLAKE3 facts | **done in this PR** (placeholder text; extend with slice 1) | none |
-| 8 | `[architecture]` declaration in `.coderipper.toml` (ruling 365) | todo | lands with slice 1 modules |
-| 9 | **Slice 1:** typed event + RedactAnt derive, canonical JSON (JCS), BLAKE3 chain with `alg` per record, `emit`/`verify`, SQLite via PersistAnt `choose`, single-writer guard (head compare-and-swap behind one function `advance_head`, plus lease), tests T1/T2/T5 and a two-writer test each with a negative control, README hello compiled in CI | todo | RedactAnt derive (row 10); PersistAnt A3 typed `update_record` 2026-11-18 (raw-byte kv CAS meanwhile) |
+| 8 | `[architecture]` declaration in `.coderipper.toml` (ruling 365) | **written, unverified** (first CI run checks it); core split into `src/chain.rs` | none |
+| 9 | **Slice 1:** typed event + RedactAnt derive, canonical JSON (JCS), BLAKE3 chain with `alg` per record, `emit`/`verify`, SQLite via PersistAnt `choose`, single-writer guard (head compare-and-swap behind one function `advance_head`, plus lease), tests T1/T2/T5 and a two-writer test each with a negative control, README hello compiled in CI | **in progress** on `lane-work`: core chain, JCS, BLAKE3 one-hash, `MemTrail` (9 tests pass on Windows); README hello compiled as a doctest (runs in CI `cargo test`); `SqliteTrail` via PersistAnt 0.18.30 (5 tests pass on Windows 2026-11-19, fresh lockfile); derive, T5 and two-writer on Linux outstanding | RedactAnt derive (row 10); body is `serde_json::Value` meanwhile; raw-byte kv CAS meanwhile |
 | 10 | RedactAnt field-level derive and serde-capable `Kept` (DESIGN 8, Q2, Q6) | RedactAnt's ROADMAP row 6; slice 1 of it is not built (its DERIVE.md "nothing built") | **Owner: redactant lane.** The 4 asks of DESIGN 8 sent as a [TASK] request 2026-11-16 (cc pm-ants); reply wanted by 2026-11-18, no date committed by them yet |
-| 11 | Swap `advance_head` to the typed helper; adopt fencing token | unblocked upstream, not started (slice 1 not begun) | PersistAnt `origin/main` has `update_record` (#262, step 1) and `Lease::token` / `lock.fencing` (#263, step 2), read 2026-11-19; no release yet, so confirm a published version before slice 1 pins it |
+| 11 | Swap `advance_head` to the typed helper; adopt fencing token | **unblocked; assessed 2026-11-19, swap NOT clearly worth it**: `update_record` is async, wraps the value in its own envelope (kind, schema) and retries a lost race by re-running `f` on the latest value, whereas the head guard must FAIL on a stale expected head; our raw `compare_and_swap` already does that, so use `update_record` only if `f` can refuse (return Err) when the live head is not the expected one, and that changes the stored head format. The fencing token (`Lease::token`) is the real gain: decide with the first multi-process user | persistant 0.18.28 published 2026-11-19, 0.18.30 (fresh-lockfile fix) taken; CHANGELOG: `update_record` in 0.18.26, `Lease::token`/`lock.fencing` in 0.18.27; `lane-work` pins 0.18.30 |
 | 12 | Other backends (postgres, mysql) in the same tests; plain files when PersistAnt can CAS on blob | todo | row 9; PersistAnt |
 | 13 | Slice 3: signed checkpoints, T3/T4 (Ed25519) | todo | row 9 |
 | 14 | Slice 4: dynamic (map-fed) events | todo | row 3 says whether a customer needs it |
 | 15 | Slice 5: segment rotation, export | todo | row 9 |
 | 16 | First publish (0.1.0 pre-release) | todo | PM publishes; rows 6 to 9 done; fresh-eyes trial of the published crate |
+| 17 | Drop the `RUSTSEC-2026-0543` (chrono) ignore in `deny.toml` | todo, **expires 2026-12-17** | sqlx/persistant-sqlx must stop pulling chrono; renew with a reason if not |
 
 ## Known gaps (not rows)
 - A tamper-evident trail does not prevent tampering, nor detect tail truncation without an externally held checkpoint (DESIGN 4, "not claimed").
 - Plain-file trails are impossible until PersistAnt can compare-and-swap on blob.
 - The lease depends on the backend's TTL clock; safety rests on the head compare-and-swap.
-- A hold on rows 9 to 13: nothing is built before the PM clears the design.
+- persistant 0.18.28 failed on fresh lockfiles (matrix keyed to bundled SQLite 3.51.3, 0.40.0 bundles 3.54.1); fixed in 0.18.30, taken 2026-11-19 with no pin. `tests/store.rs` passes on Windows on a fresh lockfile; Linux CI is still to run it. No `Lease` use here, so the 0.18.30 lease changes (10 s hold after a death between claim and token write; zero ttl refused) do not apply until row 11 adopts fencing.
+- Slice 1 has no seq/time/key_id fields yet and no derive; the record body is an untyped JSON value.
 
 — lane: auditant

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.4 - 2026-11-20
+
+- Added: slice 1 of the audit trail: one-hash BLAKE3 chain over RFC 8785 canonical JSON (`Record`, `next_record`, `verify`, `MemTrail`) and a SQLite-backed `SqliteTrail` on PersistAnt with a single-writer head compare-and-swap and crash recovery (Linux only; its tests have not yet run).
+- Docs: PATENT-SWEEP.md records the AuditAnt patent sweep (one STOP item sent to the PM; no code until answered).
+
 ## 0.0.3 - 2026-11-19
 
 - Docs: ROADMAP row 11 records that PersistAnt's typed CAS and fencing token landed on its main (unreleased).

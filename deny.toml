@@ -4,6 +4,11 @@ all-features = true
 
 [advisories]
 version = 2
+# chrono 0.4.45 via persistant-sqlx and sqlx-core 0.9.1 (we do not use it). Dated ignore, expires 2026-12-17 (pm-ants [TASK] 2026-11-20, same shape as persistant's):
+# remove when sqlx no longer pulls chrono (ROADMAP row 17), or renew with a reason.
+ignore = [
+    { id = "RUSTSEC-2026-0543", reason = "chrono unmaintained notice, no known vulnerability; reached only through persistant-sqlx and sqlx-core; no safe upgrade; removal blocked on sqlx; expires 2026-12-17" },
+]
 
 [licenses]
 version = 2
@@ -17,6 +22,8 @@ allow = [
     "Unicode-3.0",
     "Zlib",
     "CC0-1.0",
+    # webpki-roots (Mozilla's CA bundle as data) via persistant -> sqlx; a permissive data licence; same allowance as persistant's deny.toml.
+    "CDLA-Permissive-2.0",
 ]
 
 [bans]

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-// Runs on every OS once persistant's matrix key matches the bundled SQLite: needs the `libsqlite3-sys =0.37.0` pin in Cargo.toml (finding 2026-11-19; remove with the pin).  Verified on Windows 2026-11-19 (5 pass).
+// Runs on every OS (persistant 0.18.30 fixed the fresh-lockfile SQLite key). Verified on Windows 2026-11-19, fresh lockfile, libsqlite3-sys 0.40.0 (5 pass).
 use auditant::*;
 use serde_json::json;
 

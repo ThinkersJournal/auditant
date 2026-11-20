@@ -35,6 +35,7 @@ There is no headline feature claim yet, so no command to list. Every claim the R
 | 14 | Slice 4: dynamic (map-fed) events | todo | row 3 says whether a customer needs it |
 | 15 | Slice 5: segment rotation, export | todo | row 9 |
 | 16 | First publish (0.1.0 pre-release) | todo | PM publishes; rows 6 to 9 done; fresh-eyes trial of the published crate |
+| 17 | Drop the `RUSTSEC-2026-0543` (chrono) ignore in `deny.toml` | todo, **expires 2026-12-17** | sqlx/persistant-sqlx must stop pulling chrono; renew with a reason if not |
 
 ## Known gaps (not rows)
 - A tamper-evident trail does not prevent tampering, nor detect tail truncation without an externally held checkpoint (DESIGN 4, "not claimed").

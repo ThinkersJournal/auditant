@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.5 - 2026-11-21
+
+- Added: `typed_event`, building an `Event` from a `#[derive(Redact)]` value (redactant 0.1.14): the body holds each field's disposition (redacted, fingerprint tag, or kept value), never a withheld value; the derive's schema string becomes the record's `schema`. Allocated by pm-assist.
+
 ## 0.0.4 - 2026-11-20
 
 - Added: slice 1 of the audit trail: one-hash BLAKE3 chain over RFC 8785 canonical JSON (`Record`, `next_record`, `verify`, `MemTrail`) and a SQLite-backed `SqliteTrail` on PersistAnt with a single-writer head compare-and-swap and crash recovery (Linux only; its tests have not yet run).

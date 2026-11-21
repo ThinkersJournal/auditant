@@ -55,7 +55,7 @@ dependencies = [
 
 [[package]]
 name = "auditant"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "blake3",
  "erased-serde",

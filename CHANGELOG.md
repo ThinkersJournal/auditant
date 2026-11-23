@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased (version allocated by pm-assist at gate)
+
+- **Breaking (record format, pre-release, no stored trail yet):** `key_id` is now a hashed record field (`Record::key_id`, `Event::key_id`), no longer inside the body (`typed_event` sets it from the context); `Event` gains a field. `next_record` and `verify` now refuse a `time` that is not UTC RFC 3339 (`...Z`; `Error::BadTime`) and a `seq` above 2^53 - 1, where canonical JSON numbers stop being exact (`Error::SeqTooLarge`). A `None` key_id is omitted from the stored record. Board-464 one-hash rule unchanged (guard test passes).
+- Lock only: `url` 2.5.9 (pm-ants TASK).
+
 ## 0.0.5 - 2026-11-21
 
 - Added: `typed_event`, building an `Event` from a `#[derive(Redact)]` value (redactant 0.1.14): the body holds each field's disposition (redacted, fingerprint tag, or kept value), never a withheld value; the derive's schema string becomes the record's `schema`. Allocated by pm-assist.

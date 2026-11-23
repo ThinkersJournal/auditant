@@ -43,6 +43,6 @@ There is no headline feature claim yet, so no command to list. Every claim the R
 - Plain-file trails are impossible until PersistAnt can compare-and-swap on blob.
 - The lease depends on the backend's TTL clock; safety rests on the head compare-and-swap.
 - persistant 0.18.28 failed on fresh lockfiles (matrix keyed to bundled SQLite 3.51.3, 0.40.0 bundles 3.54.1); fixed in 0.18.30, taken 2026-11-19 with no pin. `tests/store.rs` passes on Windows on a fresh lockfile; Linux CI is still to run it. No `Lease` use here, so the 0.18.30 lease changes (10 s hold after a death between claim and token write; zero ttl refused) do not apply until row 11 adopts fencing.
-- `SqliteTrail::emit` still takes an untyped `Event`; callers build it with `typed_event`. No dynamic (map-fed) events (row 14); `key_id` is inside the body, not a record field.
+- `SqliteTrail::emit` still takes an untyped `Event`; callers build it with `typed_event`. No dynamic (map-fed) events (row 14); `key_id` is a hashed record field (envelope), `time` is validated UTC RFC 3339 and `seq` capped at 2^53-1 (slice-1 polish, 2026-11-23, Breaking).
 
 — lane: auditant

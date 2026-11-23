@@ -43,6 +43,8 @@ fn canaries_never_reach_the_stored_bytes_and_the_kept_field_does() {
     // Control: the kept value does appear, so the scan can see a value.
     assert!(stored.contains(SHOWN));
     assert!(stored.contains("\"key_id\":\"k1\""));
+    assert_eq!(t.records[0].key_id.as_deref(), Some("k1"));
+    assert!(t.records[0].body.get("key_id").is_none());
     assert!(
         t.records[0].schema.starts_with("Login"),
         "schema was {:?}",

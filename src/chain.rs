@@ -18,6 +18,9 @@ pub struct Record {
     pub seq: u64,
     pub time: String,
     pub schema: String,
+    /// Which fingerprint key was in force (DESIGN section 3); covered by `hash`. Absent when none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_id: Option<String>,
     pub prev: String,
     pub alg: String,
     pub body: Value,
@@ -29,6 +32,8 @@ pub struct Record {
 pub struct Event {
     pub time: String,
     pub schema: String,
+    /// The fingerprint key id, if any; stored in the record envelope, not the body.
+    pub key_id: Option<String>,
     pub body: Value,
 }
 
@@ -43,6 +48,10 @@ pub enum Error {
     BadSeq { seq: u64, expected: u64 },
     /// The record names a hash algorithm this build does not know.
     UnknownAlg { seq: u64, alg: String },
+    /// `time` is not UTC RFC 3339 of the form `YYYY-MM-DDTHH:MM:SS[.f+]Z`.
+    BadTime { seq: u64 },
+    /// `seq` exceeds 2^53 - 1, past which canonical JSON numbers are not exact.
+    SeqTooLarge { seq: u64 },
     /// The record could not be canonicalised.
     Canonical(String),
     /// Another writer appended first (the single-writer guard refused this append).
@@ -63,6 +72,8 @@ impl std::fmt::Display for Error {
             ),
             Error::BadSeq { seq, expected } => write!(f, "record {seq}: expected seq {expected}"),
             Error::UnknownAlg { seq, alg } => write!(f, "record {seq}: unknown alg {alg:?}"),
+            Error::BadTime { seq } => write!(f, "record {seq}: time is not UTC RFC 3339 (...Z)"),
+            Error::SeqTooLarge { seq } => write!(f, "record {seq}: seq exceeds 2^53 - 1"),
             Error::Canonical(e) => write!(f, "canonicalisation failed: {e}"),
             Error::Conflict { seq } => write!(f, "append of record {seq} lost to another writer"),
             Error::Corrupt(e) => write!(f, "corrupt store: {e}"),
@@ -71,6 +82,33 @@ impl std::fmt::Display for Error {
     }
 }
 impl std::error::Error for Error {}
+
+/// Largest `seq` that RFC 8785 (IEEE-754 doubles) writes exactly.
+const MAX_SEQ: u64 = (1 << 53) - 1;
+
+/// `YYYY-MM-DDTHH:MM:SS[.digits]Z`, ranges checked (no calendar-day check beyond 1..=31).
+fn valid_time(t: &str) -> bool {
+    let b = t.as_bytes();
+    if b.len() < 20 || b[b.len() - 1] != b'Z' {
+        return false;
+    }
+    let d = |i: usize, n: usize| -> Option<u32> {
+        b.get(i..i + n)?.iter().try_fold(0u32, |a, c| {
+            c.is_ascii_digit().then(|| a * 10 + u32::from(c - b'0'))
+        })
+    };
+    let ok = b[4] == b'-' && b[7] == b'-' && b[10] == b'T' && b[13] == b':' && b[16] == b':';
+    let frac = &b[19..b.len() - 1];
+    let frac_ok = frac.is_empty()
+        || (frac[0] == b'.' && frac.len() > 1 && frac[1..].iter().all(u8::is_ascii_digit));
+    ok && frac_ok
+        && d(0, 4).is_some()
+        && matches!(d(5, 2), Some(1..=12))
+        && matches!(d(8, 2), Some(1..=31))
+        && matches!(d(11, 2), Some(0..=23))
+        && matches!(d(14, 2), Some(0..=59))
+        && matches!(d(17, 2), Some(0..=60))
+}
 
 fn to_hex(b: &[u8; 32]) -> String {
     b.iter().map(|x| format!("{x:02x}")).collect()
@@ -96,10 +134,17 @@ pub fn next_record(head: Option<&Record>, ev: Event) -> Result<Record, Error> {
         Some(h) => (h.seq + 1, h.hash.clone()),
         None => (0, GENESIS.to_string()),
     };
+    if seq > MAX_SEQ {
+        return Err(Error::SeqTooLarge { seq });
+    }
+    if !valid_time(&ev.time) {
+        return Err(Error::BadTime { seq });
+    }
     let mut r = Record {
         seq,
         time: ev.time,
         schema: ev.schema,
+        key_id: ev.key_id,
         prev,
         alg: ALG_BLAKE3_V1.into(),
         body: ev.body,
@@ -127,6 +172,12 @@ pub fn verify(records: &[Record]) -> Result<Option<String>, Error> {
                 seq: r.seq,
                 expected,
             });
+        }
+        if r.seq > MAX_SEQ {
+            return Err(Error::SeqTooLarge { seq: r.seq });
+        }
+        if !valid_time(&r.time) {
+            return Err(Error::BadTime { seq: r.seq });
         }
         if r.alg != ALG_BLAKE3_V1 {
             return Err(Error::UnknownAlg {

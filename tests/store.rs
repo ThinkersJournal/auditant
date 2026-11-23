@@ -7,6 +7,7 @@ fn ev(n: u64) -> Event {
     Event {
         time: format!("2026-11-19T00:00:{n:02}Z"),
         schema: "t/1".into(),
+        key_id: None,
         body: json!({"action":"a","actor":"u","outcome":"ok","n":n}),
     }
 }

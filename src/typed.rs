@@ -3,8 +3,8 @@
 //! Typed events: a `#[derive(Redact)]` value becomes an [`Event`] whose body holds each field's
 //! DISPOSITION, never a withheld value (ROADMAP row 10, DESIGN section 8).
 //!
-//! Body shape: `{"fields": {"<path>": {"d": "redacted"} | {"d": "fp", "v": "<tag>"} | {"d": "kept", "v": <json>}}, "key_id": "<id>"}`
-//! (`key_id` only when the caller's context names one). The disposition tag is inside the hashed
+//! Body shape: `{"fields": {"<path>": {"d": "redacted"} | {"d": "fp", "v": "<tag>"} | {"d": "kept", "v": <json>}}}`;
+//! the context's `key_id` goes in the record envelope (hashed), not the body. The disposition tag is inside the hashed
 //! bytes, so flipping a field from `redacted` to `kept` later breaks the chain. The event's `schema`
 //! is the derive's per-type schema string (type name, field paths, dispositions), so a reader can
 //! tell which rules applied to a record.
@@ -60,12 +60,10 @@ pub fn typed_event<T: Redact>(
     }
     let mut body = Map::new();
     body.insert("fields".into(), Value::Object(sink.fields));
-    if let Some(id) = cx.key_id() {
-        body.insert("key_id".into(), Value::String(id.into()));
-    }
     Ok(Event {
         time: time.into(),
         schema: T::schema(),
+        key_id: cx.key_id().map(String::from),
         body: Value::Object(body),
     })
 }

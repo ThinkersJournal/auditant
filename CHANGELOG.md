@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased (version allocated by pm-assist at gate)
+
+- Added: `SqliteTrail::open_backend(id, endpoint, namespace)` opens a trail on any PersistAnt kv backend; cargo features `postgres` and `mysql` enable the server backends (PersistAnt's matrix covers postgres 16.15, mysql 8.4.11); `Endpoint` is re-exported. A namespace prefixes keys so trails can share a database (default none: existing keys unchanged). CI runs the store checks against both servers.
+
 ## 0.1.0 (breaking format polish; allocated by pm-assist 2026-11-23)
 
 - **Breaking (record format, pre-release, no stored trail yet):** `key_id` is now a hashed record field (`Record::key_id`, `Event::key_id`), no longer inside the body (`typed_event` sets it from the context); `Event` gains a field. `next_record` and `verify` now refuse a `time` that is not UTC RFC 3339 (`...Z`; `Error::BadTime`) and a `seq` above 2^53 - 1, where canonical JSON numbers stop being exact (`Error::SeqTooLarge`). A `None` key_id is omitted from the stored record. Board-464 one-hash rule unchanged (guard test passes).

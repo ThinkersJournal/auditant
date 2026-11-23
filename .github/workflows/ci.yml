@@ -49,6 +49,37 @@ jobs:
           toolchain: stable
       - run: cargo test --all-features --no-fail-fast
 
+  backends:
+    name: backends (postgres 16.15, mysql 8.4.11)
+    runs-on: ubuntu-latest
+    # The server versions are the ones PersistAnt's recorded matrix covers (0.18.30); others are refused at open.
+    services:
+      postgres:
+        image: postgres:16.15
+        env:
+          POSTGRES_PASSWORD: pw
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+      mysql:
+        image: mysql:8.4.11
+        env:
+          MYSQL_ROOT_PASSWORD: pw
+          MYSQL_DATABASE: t
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd "mysqladmin ping -ppw" --health-interval 5s --health-timeout 5s --health-retries 30
+    env:
+      AUDITANT_PG_URL: postgres://postgres:pw@127.0.0.1:5432/postgres
+      AUDITANT_MYSQL_URL: mysql://root:pw@127.0.0.1:3306/t
+      AUDITANT_REQUIRE_BACKENDS: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          toolchain: stable
+      - run: cargo test --all-features --test backends --no-fail-fast
+
   doc:
     name: doc
     runs-on: ubuntu-latest

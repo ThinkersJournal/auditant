@@ -22,12 +22,6 @@ pub struct Head {
     pub hash: String,
 }
 
-const HEAD_KEY: &str = "head";
-
-fn rec_key(seq: u64) -> String {
-    format!("rec/{seq:020}")
-}
-
 fn store_err(e: impl std::fmt::Display) -> Error {
     Error::Store(e.to_string())
 }
@@ -35,6 +29,8 @@ fn store_err(e: impl std::fmt::Display) -> Error {
 /// A trail on a PersistAnt kv backend.
 pub struct SqliteTrail {
     kv: KvHandle,
+    /// Key prefix (empty, or `<name>/`) so several trails can share one database.
+    ns: String,
 }
 
 impl std::fmt::Debug for SqliteTrail {
@@ -47,25 +43,45 @@ impl SqliteTrail {
     /// Open (creating if needed) a SQLite-backed trail at `path`, adopting an orphan record if a
     /// crash left one.
     pub fn open(path: &Path) -> Result<Self, Error> {
-        let id = |s: &str| CapabilityId::new(s).expect("literal capability id");
+        Self::open_backend("sqlite", &Endpoint::path(path), "")
+    }
+
+    /// Open a trail on any PersistAnt kv backend that offers get, put-if-absent and
+    /// compare-and-swap (`sqlite`; with the `postgres` / `mysql` features, those servers: pass a
+    /// URL endpoint such as `Endpoint::url_env("AUDITANT_DB_URL")`). `namespace` prefixes every key
+    /// (`<namespace>/`), so trails in one database stay apart; use "" for none.
+    pub fn open_backend(id: &str, endpoint: &Endpoint, namespace: &str) -> Result<Self, Error> {
+        let ns = if namespace.is_empty() {
+            String::new()
+        } else {
+            format!("{namespace}/")
+        };
+        let cap = |s: &str| CapabilityId::new(s).expect("literal capability id");
         let needs = ProviderNeeds::new(
             vec![
-                id("kv.get"),
-                id("kv.put_if_absent"),
-                id("kv.compare_and_swap"),
+                cap("kv.get"),
+                cap("kv.put_if_absent"),
+                cap("kv.compare_and_swap"),
             ],
             Durability::Process,
         );
-        let kv =
-            registry::open_named("sqlite", &Endpoint::path(path), &needs).map_err(store_err)?;
-        let t = SqliteTrail { kv };
+        let kv = registry::open_named(id, endpoint, &needs).map_err(store_err)?;
+        let t = SqliteTrail { kv, ns };
         t.recover()?;
         Ok(t)
     }
 
     /// The current head, or `None` for an empty trail.
+    fn head_key(&self) -> String {
+        format!("{}head", self.ns)
+    }
+
+    fn rec_key(&self, seq: u64) -> String {
+        format!("{}rec/{seq:020}", self.ns)
+    }
+
     pub fn head(&self) -> Result<Option<Head>, Error> {
-        match self.kv.get(HEAD_KEY).map_err(store_err)? {
+        match self.kv.get(&self.head_key()).map_err(store_err)? {
             None => Ok(None),
             Some(b) => serde_json::from_slice(&b)
                 .map(Some)
@@ -74,7 +90,7 @@ impl SqliteTrail {
     }
 
     fn record(&self, seq: u64) -> Result<Option<Record>, Error> {
-        match self.kv.get(&rec_key(seq)).map_err(store_err)? {
+        match self.kv.get(&self.rec_key(seq)).map_err(store_err)? {
             None => Ok(None),
             Some(b) => serde_json::from_slice(&b)
                 .map(Some)
@@ -103,7 +119,7 @@ impl SqliteTrail {
         let bytes = serde_json::to_vec(&r).map_err(store_err)?;
         if !self
             .kv
-            .put_if_absent(&rec_key(r.seq), bytes, None)
+            .put_if_absent(&self.rec_key(r.seq), bytes, None)
             .map_err(store_err)?
         {
             return Err(Error::Conflict { seq: r.seq });
@@ -124,12 +140,12 @@ impl SqliteTrail {
         let ok = match expected {
             None => self
                 .kv
-                .put_if_absent(HEAD_KEY, new_bytes, None)
+                .put_if_absent(&self.head_key(), new_bytes, None)
                 .map_err(store_err)?,
             Some(h) => {
                 let old = serde_json::to_vec(h).map_err(store_err)?;
                 self.kv
-                    .compare_and_swap(HEAD_KEY, &old, new_bytes, None)
+                    .compare_and_swap(&self.head_key(), &old, new_bytes, None)
                     .map_err(store_err)?
             }
         };

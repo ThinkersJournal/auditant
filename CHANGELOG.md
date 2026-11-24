@@ -2,6 +2,7 @@
 
 ## Unreleased (version allocated by pm-assist at gate)
 
+- Added: segments and export (row 15): `Segment`, `segments`, `verify_segment`, JSONL `to_jsonl`/`from_jsonl`, `SqliteTrail::export_segment`; a segment verifies alone and chains to the one before it. No pruning. `verify` now delegates to `verify_segment`. Lock only: `cargo update` (10 packages, SUP-015).
 - Added: signed checkpoints (`Checkpoint`, `CheckpointSigner`; Ed25519 via `ed25519-dalek` 3.0.0): `verify_trail` detects records removed from the end (T3) and a trail rewritten from a checkpointed point (T4, while the attacker lacks the key). `Error` gains `BadSignature`, `Truncated`, `CheckpointMismatch` (Breaking for exhaustive matches, pre-release). `SigningKey`/`VerifyingKey` re-exported. CI `portfolio.yml` pin moved to coderipper dc45e36.
 
 ## 0.1.1 - 2026-11-24 (allocated by pm-assist; postgres and mysql backends)

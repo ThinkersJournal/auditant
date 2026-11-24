@@ -181,9 +181,20 @@ pub(crate) fn check_hash(r: &Record) -> Result<(), Error> {
 
 /// Verify a whole trail from the start. Returns the head hash, or the FIRST broken record and why.
 pub fn verify(records: &[Record]) -> Result<Option<String>, Error> {
-    let mut prev = GENESIS.to_string();
+    verify_segment(records, 0, GENESIS)
+}
+
+/// Verify a run of records that starts at `start_seq` and whose first `prev` must be `start_prev`
+/// (use [`verify`] for a whole trail). This is how an exported segment is checked on its own; it
+/// proves the segment is internally intact and links to `start_prev`, nothing about earlier records.
+pub fn verify_segment(
+    records: &[Record],
+    start_seq: u64,
+    start_prev: &str,
+) -> Result<Option<String>, Error> {
+    let mut prev = start_prev.to_string();
     for (i, r) in records.iter().enumerate() {
-        let expected = i as u64;
+        let expected = start_seq + i as u64;
         if r.seq != expected {
             return Err(Error::BadSeq {
                 seq: r.seq,

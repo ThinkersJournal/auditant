@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (version allocated by pm-assist at gate)
+## 0.1.1 - 2026-11-24 (allocated by pm-assist; postgres and mysql backends)
 
 - Added: `SqliteTrail::open_backend(id, endpoint, namespace)` opens a trail on any PersistAnt kv backend; cargo features `postgres` and `mysql` enable the server backends (PersistAnt's matrix covers postgres 16.15, mysql 8.4.11); `Endpoint` is re-exported. A namespace prefixes keys so trails can share a database (default none: existing keys unchanged). CI runs the store checks against both servers.
 

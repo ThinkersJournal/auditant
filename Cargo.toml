@@ -1,6 +1,6 @@
 [package]
 name = "auditant"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.94"
 description = "Planned. The crate name is reserved; there is no API yet."
@@ -17,6 +17,11 @@ redactant = { version = "0.1.14", features = ["derive", "serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_json_canonicalizer = "0.4.1"
+
+[features]
+# Server backends for `SqliteTrail::open_backend` (tests/backends.rs; CI runs them against service containers).
+postgres = ["persistant/registry-postgres"]
+mysql = ["persistant/registry-mysql"]
 
 [dev-dependencies]
 tempfile = "3.27.0"

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased (version allocated by pm-assist at gate)
+
+- Added: signed checkpoints (`Checkpoint`, `CheckpointSigner`; Ed25519 via `ed25519-dalek` 3.0.0): `verify_trail` detects records removed from the end (T3) and a trail rewritten from a checkpointed point (T4, while the attacker lacks the key). `Error` gains `BadSignature`, `Truncated`, `CheckpointMismatch` (Breaking for exhaustive matches, pre-release). `SigningKey`/`VerifyingKey` re-exported. CI `portfolio.yml` pin moved to coderipper dc45e36.
+
 ## 0.1.1 - 2026-11-24 (allocated by pm-assist; postgres and mysql backends)
 
 - Added: `SqliteTrail::open_backend(id, endpoint, namespace)` opens a trail on any PersistAnt kv backend; cargo features `postgres` and `mysql` enable the server backends (PersistAnt's matrix covers postgres 16.15, mysql 8.4.11); `Endpoint` is re-exported. A namespace prefixes keys so trails can share a database (default none: existing keys unchanged). CI runs the store checks against both servers.

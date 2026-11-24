@@ -16,12 +16,15 @@
 struct ReadmeDoctests;
 
 mod chain;
+mod checkpoint;
 mod store;
 mod typed;
 
 pub use chain::{
     ALG_BLAKE3_V1, CONTEXT, Error, Event, GENESIS, MemTrail, Record, next_record, verify,
 };
+pub use checkpoint::{Checkpoint, CheckpointSigner};
+pub use ed25519_dalek::{SigningKey, VerifyingKey};
 pub use persistant::registry::Endpoint;
 pub use store::{Head, SqliteTrail};
 pub use typed::typed_event;

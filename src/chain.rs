@@ -52,6 +52,12 @@ pub enum Error {
     BadTime { seq: u64 },
     /// `seq` exceeds 2^53 - 1, past which canonical JSON numbers are not exact.
     SeqTooLarge { seq: u64 },
+    /// A checkpoint's signature does not verify under the key given (or is malformed).
+    BadSignature,
+    /// The trail is shorter than a checkpoint says it was: records were removed from the end (T3).
+    Truncated { checkpoint_seq: u64, trail_len: u64 },
+    /// The trail's record at the checkpoint's `seq` has a different hash: the trail was rewritten (T4).
+    CheckpointMismatch { seq: u64 },
     /// The record could not be canonicalised.
     Canonical(String),
     /// Another writer appended first (the single-writer guard refused this append).
@@ -74,6 +80,17 @@ impl std::fmt::Display for Error {
             Error::UnknownAlg { seq, alg } => write!(f, "record {seq}: unknown alg {alg:?}"),
             Error::BadTime { seq } => write!(f, "record {seq}: time is not UTC RFC 3339 (...Z)"),
             Error::SeqTooLarge { seq } => write!(f, "record {seq}: seq exceeds 2^53 - 1"),
+            Error::BadSignature => write!(f, "checkpoint signature does not verify"),
+            Error::Truncated {
+                checkpoint_seq,
+                trail_len,
+            } => write!(
+                f,
+                "trail has {trail_len} records but a checkpoint covers seq {checkpoint_seq}: records were removed from the end"
+            ),
+            Error::CheckpointMismatch { seq } => {
+                write!(f, "record {seq} does not match the checkpoint's hash")
+            }
             Error::Canonical(e) => write!(f, "canonicalisation failed: {e}"),
             Error::Conflict { seq } => write!(f, "append of record {seq} lost to another writer"),
             Error::Corrupt(e) => write!(f, "corrupt store: {e}"),
@@ -87,7 +104,7 @@ impl std::error::Error for Error {}
 const MAX_SEQ: u64 = (1 << 53) - 1;
 
 /// `YYYY-MM-DDTHH:MM:SS[.digits]Z`, ranges checked (no calendar-day check beyond 1..=31).
-fn valid_time(t: &str) -> bool {
+pub(crate) fn valid_time(t: &str) -> bool {
     let b = t.as_bytes();
     if b.len() < 20 || b[b.len() - 1] != b'Z' {
         return false;

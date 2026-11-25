@@ -55,7 +55,7 @@ dependencies = [
 
 [[package]]
 name = "auditant"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "blake3",
  "ed25519-dalek",

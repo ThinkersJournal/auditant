@@ -201,8 +201,8 @@ impl SqliteTrail {
         verify(&records)
     }
 
-    /// Read records `first..=last` (clamped to the head) as a verified [`Segment`] ready to export
-    /// with [`Segment::to_jsonl`]. Reads only; the store is not changed.
+    /// Read records `first..=last` (clamped to the head) as a verified [`Segment`](crate::export::Segment) ready to export
+    /// with [`Segment::to_jsonl`](crate::export::Segment::to_jsonl). Reads only; the store is not changed.
     pub fn export_segment(&self, first: u64, last: u64) -> Result<crate::export::Segment, Error> {
         let mut records = Vec::new();
         for seq in first..=last {

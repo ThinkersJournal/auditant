@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.1.3 - 2026-11-26 (allocated by pm-assist; CI only: portfolio workflow pinned to coderipper 467fd259, 0.48.1; no code change; not breaking)
+
 ## 0.1.2 - 2026-11-25 (allocated by pm-assist; segments and export, rows 13/15/18/19)
 
 - Added: segments and export (row 15): `Segment`, `segments`, `verify_segment`, JSONL `to_jsonl`/`from_jsonl`, `SqliteTrail::export_segment`; a segment verifies alone and chains to the one before it. No pruning. `verify` now delegates to `verify_segment`. Lock only: `cargo update` (10 packages, SUP-015).
